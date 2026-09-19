@@ -4,7 +4,7 @@
 
 | Komponen | Isian |
 |---|---|
-| Nama | ISI NAMA LENGKAP |
+| Nama | Efi Defiyati |
 | NIM | 123450005 |
 | Kelas | ISI KELAS |
 | Modul | M01 - Fondasi Jaringan Saraf, FNN, Aktivasi, dan Loss |
@@ -103,13 +103,13 @@ Model final (tanh_h16) pada **test set**: test loss = 0,169, test accuracy = 0,9
 
 ### 4.2 Grafik utama
 
-![Validation loss enam eksperimen](report_assets/img_25_5.png)
+![Validation loss enam eksperimen](https://drive.google.com/drive/u/0/folders/1MHEeckIzVePdrsclSsLbuLf2fFTWW3va)
 
 **Gambar 1.** Kurva validation loss (BCE) terhadap epoch untuk keenam kombinasi aktivasi × hidden size, pada validation set (n=120). Tanh (garis merah dan hijau) turun paling konsisten hingga akhir 200 epoch, sedangkan kedua kurva Sigmoid (ungu dan cokelat) melandai di atas 0,35 dan nyaris berhimpit.
 
 **Temuan dari Gambar 1:** tanh_h16 (garis merah) mencapai validation loss terendah (0,2453) dan masih menurun di epoch ke-200, mengindikasikan model belum sepenuhnya konvergen; sebaliknya kedua kurva Sigmoid mendatar sejak sekitar epoch ke-100 pada level ≈0,355, konsisten dengan saturasi gradien pada aktivasi tersebut.
 
-![Decision boundary model final](report_assets/img_27_7.png)
+![Decision boundary model final](https://drive.google.com/drive/u/0/folders/1MHEeckIzVePdrsclSsLbuLf2fFTWW3va)
 
 **Gambar 2.** Decision boundary model final (tanh_h16) pada test set (n=120); kontur warna menunjukkan probabilitas kelas 1, garis hitam adalah ambang 0,5.
 
@@ -164,5 +164,5 @@ Mengulang keenam konfigurasi dengan 5 seed berbeda dan melaporkan validation los
 ## Pernyataan Orisinalitas
 Saya menyatakan bahwa kode, eksperimen, analisis, dan laporan ini merupakan pekerjaan individual. Semua sumber eksternal, termasuk potongan kode, telah dicantumkan. Saya memahami bahwa kemiripan hasil akibat seed atau data yang sama tidak membenarkan penyalinan notebook maupun analisis.
 
-**Nama:** ISI NAMA
-**Tanggal:** 2026-09-16
+**Nama:** Efi Defiyati
+**Tanggal:** 2026-09-15

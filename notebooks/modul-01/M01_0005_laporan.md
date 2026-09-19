@@ -103,13 +103,13 @@ Model final (tanh_h16) pada **test set**: test loss = 0,169, test accuracy = 0,9
 
 ### 4.2 Grafik utama
 
-d/1JLRdLpXXlVClQFhTujZS_8D2I8-qLc71/view
+[d/1JLRdLpXXlVClQFhTujZS_8D2I8-qLc71/view](https://drive.google.com/file/d/1xjRBfmTqwcD2hKhr431GuPIW1sJ7Oevx/view)
 
 **Gambar 1.** Kurva validation loss (BCE) terhadap epoch untuk keenam kombinasi aktivasi × hidden size, pada validation set (n=120). Tanh (garis merah dan hijau) turun paling konsisten hingga akhir 200 epoch, sedangkan kedua kurva Sigmoid (ungu dan cokelat) melandai di atas 0,35 dan nyaris berhimpit.
 
 **Temuan dari Gambar 1:** tanh_h16 (garis merah) mencapai validation loss terendah (0,2453) dan masih menurun di epoch ke-200, mengindikasikan model belum sepenuhnya konvergen; sebaliknya kedua kurva Sigmoid mendatar sejak sekitar epoch ke-100 pada level ≈0,355, konsisten dengan saturasi gradien pada aktivasi tersebut.
 
-d/1JLRdLpXXlVClQFhTujZS_8D2I8-qLc71/view
+[d/1JLRdLpXXlVClQFhTujZS_8D2I8-qLc71/view](https://drive.google.com/file/d/1JLRdLpXXlVClQFhTujZS_8D2I8-qLc71/view)
 
 **Gambar 2.** Decision boundary model final (tanh_h16) pada test set (n=120); kontur warna menunjukkan probabilitas kelas 1, garis hitam adalah ambang 0,5.
 

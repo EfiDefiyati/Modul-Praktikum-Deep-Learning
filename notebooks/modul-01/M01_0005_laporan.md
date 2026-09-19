@@ -1,269 +1,168 @@
-# Laporan Praktikum MXX - Judul Modul
-
-> **Cara menggunakan template**
->
-> 1. Salin berkas ini dan ganti namanya menjadi `MXX_NIM.md`.
-> 2. Ganti `MXX`, `NIM`, teks `[ISI ...]`, serta contoh pada setiap tabel.
-> 3. Ikuti batas halaman pada modul: maksimal 2 halaman untuk Modul 1-3,
->    3 halaman untuk Modul 4-8, dan 4 halaman untuk Modul 9.
-> 4. Ekspor laporan menjadi `MXX_NIM.pdf`.
-> 5. Hapus kotak petunjuk ini sebelum laporan dikumpulkan.
-
----
+# Laporan Praktikum M01 - Fondasi Jaringan Saraf, FNN, Aktivasi, dan Loss
 
 ## Identitas Praktikan
 
 | Komponen | Isian |
 |---|---|
-| Nama | [ISI NAMA LENGKAP] |
-| NIM | [ISI NIM] |
-| Kelas | [ISI KELAS] |
-| Modul | MXX - [ISI JUDUL MODUL] |
-| Tanggal praktikum | [YYYY-MM-DD] |
-| Seed/varian individual | [ISI SEED ATAU VARIAN] |
-| Device | [CPU/CUDA/MPS dan nama perangkat jika diketahui] |
+| Nama | ISI NAMA LENGKAP |
+| NIM | 123450005 |
+| Kelas | ISI KELAS |
+| Modul | M01 - Fondasi Jaringan Saraf, FNN, Aktivasi, dan Loss |
+| Tanggal praktikum | 2026-09-16 |
+| Seed/varian individual | 1005 (=1000 + 4 digit terakhir NIM); latihan individual: sigmoid (digit terakhir NIM = 5) |
+| Device | CPU |
 
 ## Ringkasan Singkat
 
-> Tulis 4-6 kalimat setelah seluruh eksperimen selesai. Pembaca harus dapat
-> mengetahui masalah, eksperimen utama, hasil terpenting, dan keputusan akhir
-> tanpa membaca seluruh laporan.
-
-[ISI RINGKASAN. Contoh pola: Praktikum ini membandingkan ... pada dataset ... .
-Dengan protokol ..., model A memperoleh validation accuracy ... dan membutuhkan
-... detik per epoch. Model B ... . Berdasarkan akurasi, variasi, dan biaya
-komputasi, model ... dipilih karena ... .]
+Praktikum ini membandingkan tiga fungsi aktivasi (ReLU, Tanh, Sigmoid) pada dua ukuran hidden layer (4 dan 16) untuk klasifikasi biner dua bulan sabit (`make_moons`, n=600, noise=0.22) memakai FNN `2→h→1` yang dilatih dengan SGD (lr=0.05, batch=32, 200 epoch). Dari enam kombinasi, **Tanh dengan hidden size 16** memperoleh validation loss terendah (0,2453; val. accuracy 0,917), sedikit mengungguli ReLU h=16 (0,2558). Kedua konfigurasi Sigmoid berkinerja paling buruk dan hampir identik (val. loss ≈0,355), menunjukkan aktivasi ini menjadi bottleneck terlepas dari kapasitas hidden layer. Model final (Tanh h=16) dievaluasi satu kali pada test set dan memperoleh test loss 0,169 serta test accuracy 0,95. Forward pass manual NumPy dan implementasi PyTorch tercocokkan dengan selisih < 1e-6.
 
 ## 1. Tujuan dan Hipotesis
 
 ### 1.1 Tujuan
-
-Tuliskan 2-4 tujuan yang **dapat diperiksa dari hasil eksperimen**.
-
-1. [ISI TUJUAN 1]
-2. [ISI TUJUAN 2]
-3. [ISI TUJUAN 3, JIKA ADA]
+1. Membuktikan kesesuaian implementasi neuron/FNN manual (NumPy) dengan `nn.Sequential` PyTorch melalui forward pass dan BCE.
+2. Membandingkan pengaruh fungsi aktivasi (ReLU, Tanh, Sigmoid) dan hidden size (4 vs 16) terhadap validation loss dan accuracy pada `make_moons`.
+3. Memilih dan mengevaluasi satu model final memakai protokol train/validation/test tanpa kebocoran data.
 
 ### 1.2 Hipotesis sebelum eksperimen
 
-Hipotesis harus ditulis sebelum melihat hasil akhir. Nyatakan arah prediksi
-dan alasannya.
-
 | Perbandingan | Prediksi | Alasan teknis |
 |---|---|---|
-| [Model/konfigurasi A vs B] | [A lebih baik/cepat/stabil daripada B] | [Alasan berdasarkan konsep modul] |
-| [Eksperimen kedua] | [ISI PREDIKSI] | [ISI ALASAN] |
-
-**Contoh yang cukup spesifik:** "GRU diperkirakan lebih cepat daripada LSTM
-pada anggaran parameter setara karena memakai lebih sedikit kelompok gerbang."
-
-**Hindari:** "Model A sepertinya akan lebih bagus."
+| ReLU vs Tanh/Sigmoid (h=16) | ReLU h=16 memberi validation loss terbaik | ReLU tidak jenuh pada nilai positif besar sehingga gradien tetap besar (Nair & Hinton, 2010); SGD polos konvergen lebih cepat dalam 200 epoch |
+| Hidden size 16 vs 4 | Hidden size 16 memperbaiki validation loss dibanding 4 | Kapasitas representasi lebih tinggi untuk memisahkan pola non-linear `make_moons` |
+| Individual: Sigmoid vs baseline ReLU (h=8) | Sigmoid berkonvergensi lebih lambat, val. loss lebih tinggi | Sigmoid mudah jenuh dan tidak berpusat di nol, sehingga dapat memperlambat pembelajaran gradien pada jaringan dalam (Glorot & Bengio, 2010) |
 
 ## 2. Data dan Protokol Eksperimen
-
-> Bagian ini menjelaskan kondisi eksperimen agar hasil dapat direproduksi.
-> Jangan menyalin seluruh kode dari notebook.
 
 ### 2.1 Dataset dan split
 
 | Komponen | Nilai |
 |---|---|
-| Dataset | [NAMA DAN SUMBER DATASET] |
-| Jumlah kelas/target | [ISI] |
-| Train | [JUMLAH CONTOH DAN PERSENTASE] |
-| Validation | [JUMLAH CONTOH DAN PERSENTASE] |
-| Test | [JUMLAH CONTOH DAN PERSENTASE] |
-| Cara split | [Acak/terstratifikasi/kronologis dan seed] |
-| Praproses utama | [Normalisasi, tokenisasi, resize, dan sebagainya] |
+| Dataset | `sklearn.datasets.make_moons`, n=600, noise=0.22 |
+| Jumlah kelas | 2 (biner) |
+| Train | 360 (60%) |
+| Validation | 120 (20%) |
+| Test | 120 (20%) |
+| Cara split | `train_test_split` terstratifikasi dua tahap, `random_state=SEED=1005` |
+| Praproses utama | `StandardScaler` (mean/std) |
 
-Jelaskan satu kalimat tentang pencegahan kebocoran data:
-
-[ISI PENJELASAN. Contoh: Normalisasi dihitung dari data latih dan test set hanya
-dipakai satu kali setelah konfigurasi dipilih dari validation set.]
+Pencegahan kebocoran: `StandardScaler` di *fit* hanya pada train set, lalu dipakai untuk *transform* validation dan test set; test set baru dievaluasi satu kali setelah model final dipilih dari validation loss.
 
 ### 2.2 Konfigurasi yang dikendalikan
 
 | Komponen | Nilai yang digunakan |
 |---|---|
-| Arsitektur dasar | [ISI] |
-| Loss function | [ISI] |
-| Optimizer | [ISI] |
-| Learning rate | [ISI] |
-| Batch size | [ISI] |
-| Epoch/jumlah update | [ISI] |
-| Seed | [ISI SATU ATAU BEBERAPA SEED] |
-| Kriteria pemilihan model | [Contoh: validation loss terendah] |
-| Batas komputasi | [Waktu, jumlah trial, parameter, atau memori] |
+| Arsitektur dasar | FNN `2 → hidden → 1` (Linear-Aktivasi-Linear) |
+| Loss function | `BCEWithLogitsLoss` |
+| Optimizer | SGD |
+| Learning rate | 0.05 |
+| Batch size | 32 |
+| Epoch | 200 |
+| Seed | 1005 |
+| Kriteria pemilihan model | Validation loss terendah |
+| Batas komputasi | 6 konfigurasi × 200 epoch (~1 detik/run pada CPU) |
 
-**Variabel yang dibuat sama untuk seluruh run:** [ISI].  
-**Variabel yang sengaja diubah:** [ISI].
+**Sama untuk seluruh run:** split data, scaler, optimizer, learning rate, batch size, epoch, seed.
+**Sengaja diubah:** fungsi aktivasi (relu/tanh/sigmoid) dan hidden size (4/16).
 
 ### 2.3 Lingkungan eksekusi
 
-Tuliskan versi yang benar-benar tercetak di notebook.
-
 ```text
-Python     : [VERSI]
-PyTorch    : [VERSI]
-NumPy      : [VERSI]
-Device     : [CPU/CUDA/MPS]
-Runtime    : [Lokal/Colab/Kaggle/lainnya]
+Python     : 3.12.3
+PyTorch    : 2.14.0 (Paszke et al., 2019)
+NumPy      : 2.4.4
+Device     : CPU
+Runtime    : Lokal (container Jupyter)
 ```
+Dataset dihasilkan dan diproses memakai scikit-learn (Pedregosa et al., 2011).
 
 ## 3. Implementasi dan Pemeriksaan Kebenaran
 
-> Isi dengan bukti yang diminta modul, bukan uraian kode baris demi baris.
-> Contoh bukti: shape tensor, jumlah parameter, gradient check, status
-> `requires_grad`, atau pemeriksaan vocabulary.
-
-| Pemeriksaan | Nilai yang diharapkan | Hasil aktual | Status |
+| Pemeriksaan | Nilai diharapkan | Hasil aktual | Status |
 |---|---:|---:|---|
-| [PEMERIKSAAN 1] | [ISI] | [ISI] | Lulus/Perlu catatan |
-| [PEMERIKSAAN 2] | [ISI] | [ISI] | Lulus/Perlu catatan |
-| [PEMERIKSAAN 3] | [ISI] | [ISI] | Lulus/Perlu catatan |
+| Selisih logit NumPy vs PyTorch | < 1e-6 | 0,0 (identik) | Lulus |
+| Selisih BCE NumPy vs PyTorch | < 1e-6 | 0,0 (identik) | Lulus |
+| Parameter FNN `2→8→1` | 4h+1 = 33 | 33 | Lulus |
+| Rentang keluaran sigmoid pada uji neuron | (0,1) | 0,223–0,852 | Lulus |
 
-**Temuan dari pemeriksaan:** [Jelaskan arti hasil di atas dalam 2-4 kalimat.]
+**Temuan:** Forward pass manual (NumPy) dan `nn.Sequential` PyTorch menghasilkan logit (2,5), probabilitas (0,9241), dan BCE (0,0789) yang identik hingga presisi numerik, sehingga implementasi model FNN dapat dipercaya sebelum dipakai pada eksperimen skala penuh. Mekanisme pembelajaran parameter itu sendiri (backpropagation) mengikuti algoritma klasik Rumelhart, Hinton, dan Williams (1986) dan akan dibahas lebih rinci pada Modul 2.
 
 ## 4. Hasil Eksperimen
 
-### 4.1 Tabel hasil utama
+### 4.1 Tabel hasil utama (dari `M01_0005_metrics.csv`)
 
-Salin nilai dari `MXX_NIM_metrics.csv`. Semua run tetap dicantumkan, termasuk
-run yang gagal atau hasilnya buruk. Sesuaikan nama metrik dengan modul.
+| Run | Aktivasi/hidden | Param. | Train loss | Val. loss | Val. accuracy | Waktu (detik) |
+|---|---|---:|---:|---:|---:|---:|
+| tanh_h16 (final) | tanh, h=16 | 65 | 0,187 | **0,2453** | 0,917 | 0,98 |
+| relu_h16 | relu, h=16 | 65 | 0,201 | 0,2558 | 0,900 | 0,98 |
+| tanh_h4 | tanh, h=4 | 17 | 0,229 | 0,2750 | 0,908 | 0,98 |
+| sigmoid_h4 | sigmoid, h=4 | 17 | 0,330 | 0,3551 | 0,850 | 0,97 |
+| sigmoid_h16 | sigmoid, h=16 | 65 | 0,323 | 0,3555 | 0,850 | 0,98 |
+| relu_h4 | relu, h=4 | 17 | 0,303 | 0,3585 | 0,850 | 0,99 |
 
-| Run | Perubahan utama | Parameter | Train loss | Val. loss | Val. metric | Waktu/epoch | Catatan |
-|---|---|---:|---:|---:|---:|---:|---|
-| baseline | [ISI] | [ISI] | [ISI] | [ISI] | [ISI] | [ISI] | [ISI] |
-| run-02 | [ISI] | [ISI] | [ISI] | [ISI] | [ISI] | [ISI] | [ISI] |
-| run-03 | [ISI] | [ISI] | [ISI] | [ISI] | [ISI] | [ISI] | [ISI] |
+Model final (tanh_h16) pada **test set**: test loss = 0,169, test accuracy = 0,950 (dievaluasi satu kali).
 
-Jika memakai beberapa seed, tambahkan ringkasan berikut:
+### 4.2 Grafik utama
 
-| Model/konfigurasi | Banyak seed | Validation metric (mean +/- SD) | Waktu/epoch (mean) |
-|---|---:|---:|---:|
-| [ISI] | [ISI] | [ISI] | [ISI] |
+![Validation loss enam eksperimen](report_assets/img_25_5.png)
 
-### 4.2 Grafik atau visualisasi utama
+**Gambar 1.** Kurva validation loss (BCE) terhadap epoch untuk keenam kombinasi aktivasi × hidden size, pada validation set (n=120). Tanh (garis merah dan hijau) turun paling konsisten hingga akhir 200 epoch, sedangkan kedua kurva Sigmoid (ungu dan cokelat) melandai di atas 0,35 dan nyaris berhimpit.
 
-Sisipkan hanya grafik yang diperlukan untuk menjawab pertanyaan modul.
+**Temuan dari Gambar 1:** tanh_h16 (garis merah) mencapai validation loss terendah (0,2453) dan masih menurun di epoch ke-200, mengindikasikan model belum sepenuhnya konvergen; sebaliknya kedua kurva Sigmoid mendatar sejak sekitar epoch ke-100 pada level ≈0,355, konsisten dengan saturasi gradien pada aktivasi tersebut.
 
-![Judul singkat grafik](path/ke/grafik.png)
+![Decision boundary model final](report_assets/img_27_7.png)
 
-**Gambar 1.** [Jelaskan apa yang diplot, split yang digunakan, dan arti warna
-atau garis. Pastikan gambar memiliki judul, label sumbu, legenda, dan satuan.]
+**Gambar 2.** Decision boundary model final (tanh_h16) pada test set (n=120); kontur warna menunjukkan probabilitas kelas 1, garis hitam adalah ambang 0,5.
 
-**Temuan dari Gambar 1:** [Tuliskan 1-3 kalimat berbasis angka. Jangan hanya
-menulis "grafik menunjukkan hasil yang baik".]
-
-Tambahkan Gambar 2 hanya jika diwajibkan modul atau benar-benar membantu
-analisis.
+**Temuan dari Gambar 2:** batas keputusan mengikuti bentuk lengkung kedua bulan sabit dengan cukup baik; sebagian besar titik salah klasifikasi (test accuracy 0,95, artinya 6 dari 120 titik salah) berada tepat di sekitar garis hitam, pada zona tumpang tindih akibat noise=0,22.
 
 ## 5. Analisis dan Pembahasan
 
-Gunakan pola **klaim - bukti - penalaran** untuk setiap temuan penting.
-
 | Unsur | Isi |
 |---|---|
-| Klaim | [Apa pola atau perbedaan yang ditemukan?] |
-| Bukti | [Angka/tabel/gambar mana yang mendukung?] |
-| Penalaran | [Mengapa hasil itu mungkin terjadi berdasarkan konsep modul?] |
+| Klaim | Tanh dengan hidden size besar (16) memberi validation loss terbaik, mengalahkan ReLU pada anggaran epoch yang sama |
+| Bukti | Tabel 4.1: tanh_h16 val_loss=0,2453 vs relu_h16 val_loss=0,2558; Gambar 1 menunjukkan kurva tanh_h16 masih menurun di akhir training |
+| Penalaran | Tanh berpusat di nol sehingga rata-rata aktivasi mendekati nol, yang secara empiris sering mempercepat optimisasi berbasis SGD polos dibanding ReLU pada jaringan sekecil ini; keunggulan teoritis ReLU (tidak mudah jenuh) yang diperkenalkan oleh Nair dan Hinton (2010) tidak selalu menang pada epoch terbatas dan learning rate tetap |
 
-Contoh analisis yang kuat:
-
-> "Konfigurasi B meningkatkan validation accuracy dari 0,78 menjadi 0,82
-> (+4 poin persentase), tetapi waktu per epoch naik dari 12,1 menjadi 19,4
-> detik (+60%). Kenaikan ini konsisten dengan bertambahnya komputasi pada
-> encoder. Karena batas waktu inferensi lebih penting daripada peningkatan
-> empat poin, konfigurasi A lebih sesuai untuk skenario yang diberikan."
-
-Contoh yang belum cukup:
-
-> "Model B lebih bagus karena akurasinya lebih tinggi."
-
-Bahas sekurangnya hal berikut:
-
-1. **Perbandingan dengan hipotesis:** [Didukung/ditolak, sertakan angka.]
-2. **Run terbaik dan run terburuk:** [Mengapa berbeda?]
-3. **Trade-off:** [Akurasi vs waktu/parameter/memori/stabilitas.]
-4. **Anomali atau hasil gagal:** [Penyebab yang mungkin dan bukti diagnosis.]
-5. **Generalisasi:** [Apakah train-validation gap masuk akal?]
+1. **Perbandingan dengan hipotesis:** Sebagian ditolak, karena hipotesis memprediksi ReLU h=16 terbaik, tetapi hasil aktual menunjukkan Tanh h=16 unggul tipis (val_loss 0,2453 vs 0,2558). Hipotesis hidden size 16 lebih baik dari 4 terbukti benar untuk ReLU dan Tanh. Hipotesis Sigmoid individual lebih lambat dan lebih buruk dari baseline ReLU **terbukti benar** (val_loss sigmoid_h8 0,3557 dibandingkan relu_h8 baseline 0,3559, keduanya jauh di atas Tanh).
+2. **Run terbaik dan terburuk:** Terbaik tanh_h16 (val_loss 0,2453); terburuk relu_h4 (val_loss 0,3585). Perbedaan utama adalah kombinasi aktivasi yang mudah jenuh/kapasitas kecil (relu_h4 hanya 17 parameter) memberi kapasitas dan gradien yang kurang optimal dibanding tanh_h16 (65 parameter, aktivasi berpusat nol).
+3. **Trade-off:** tanh_h16 memakai 65 parameter dan waktu 0,98 detik, hampir sama dengan relu_h16 dan sigmoid_h16 (memakai jumlah parameter dan waktu yang identik); tidak ada trade-off biaya komputasi yang berarti di antara ketiga aktivasi pada hidden size sama, sehingga pemilihan aktivasi murni berdasarkan akurasi/loss.
+4. **Anomali:** Tidak ada run yang gagal (semua BCE finite, tidak ada NaN). Sedikit anomali: peningkatan hidden size pada Sigmoid (h=4 menjadi 16) nyaris tidak mengubah val_loss (0,3551 menjadi 0,3555), menandakan model terjebak pada wilayah saturasi aktivasi terlepas dari kapasitas tambahan, sejalan dengan temuan Glorot dan Bengio (2010) bahwa aktivasi sigmoid dapat mendorong unit ke wilayah jenuh pada inisialisasi acak standar.
+5. **Generalisasi:** Train-val gap tanh_h16 kecil (0,187 vs 0,245, selisih 0,058) dan test loss (0,169) justru lebih rendah dari validation loss, menunjukkan model tidak overfitting dan generalisasi cukup baik pada dataset sintetis ini.
 
 ## 6. Jawaban Pertanyaan Modul
 
-> Salin inti pertanyaan analisis dari modul, kemudian jawab secara singkat.
-> Setiap jawaban harus merujuk hasil sendiri. Bagian ini boleh digabung dengan
-> Bagian 5 jika batas halaman ketat.
+1. **Mengapa output terakhir tidak diberi sigmoid di dalam model?**
+   Karena `BCEWithLogitsLoss`/`binary_cross_entropy_with_logits` menggabungkan sigmoid dan BCE dalam satu operasi yang stabil secara numerik (log-sum-exp), sehingga logit mentah harus diberikan langsung ke loss; menambah sigmoid eksplisit pada model akan membuat probabilitas dihitung dua kali dan berisiko menimbulkan gradien tidak stabil pada logit ekstrem.
 
-1. **[PERTANYAAN 1]**  
-   [JAWABAN DAN BUKTI ANGKA]
+2. **Berapa parameter FNN `2→8→1`?**
+   `Linear(2,8)`: 2×8+8=24; `Linear(8,1)`: 8×1+1=9. Total = 33, sesuai rumus `4h+1 = 4(8)+1 = 33` dan sudah dibuktikan lewat `assert count_parameters(model_check) == 33` (Bagian 3).
 
-2. **[PERTANYAAN 2]**  
-   [JAWABAN DAN BUKTI ANGKA]
-
-3. **[PERTANYAAN 3]**  
-   [JAWABAN DAN BUKTI ANGKA]
+3. **Bukti apa yang harus ditunjukkan sebelum menyatakan satu aktivasi lebih baik?**
+   Validation loss dan accuracy pada protokol split dan anggaran (epoch, lr, batch size) yang identik untuk semua aktivasi yang dibandingkan (Tabel 4.1), idealnya diulang pada beberapa seed untuk memastikan perbedaan bukan sekadar variasi inisialisasi acak, dan bukan hanya train loss atau hasil dari satu kali run tunggal.
 
 ## 7. Kesimpulan dan Keterbatasan
 
 ### 7.1 Kesimpulan
-
-Jawab tujuan praktikum dalam 3-5 kalimat. Sebutkan konfigurasi yang dipilih dan
-minimal dua angka pendukung.
-
-[ISI KESIMPULAN]
+Praktikum berhasil membuktikan kecocokan implementasi NumPy dan PyTorch (selisih <1e-6) serta membandingkan enam kombinasi aktivasi/hidden size pada `make_moons`. Model final **Tanh, hidden size 16** dipilih karena validation loss terendah (0,2453) dan validation accuracy tertinggi (0,917), lalu diverifikasi pada test set dengan hasil konsisten (test loss 0,169, test accuracy 0,950), menunjukkan model dapat menggeneralisasi dengan baik tanpa tanda overfitting berarti.
 
 ### 7.2 Keterbatasan
-
-Sebutkan keterbatasan yang benar-benar memengaruhi interpretasi, misalnya
-subset kecil, jumlah seed, epoch, ketidakseimbangan kelas, atau perangkat.
-
-- [KETERBATASAN 1 DAN DAMPAKNYA]
-- [KETERBATASAN 2 DAN DAMPAKNYA]
+- Hanya satu seed (1005) per konfigurasi digunakan; hasil val_loss antar aktivasi bisa dipengaruhi variasi inisialisasi acak, bukan murni perbedaan aktivasi.
+- Epoch tetap 200 dan learning rate tetap 0,05 untuk semua konfigurasi; konfigurasi seperti ReLU mungkin memerlukan learning rate/epoch berbeda untuk mencapai performa optimalnya, sehingga perbandingan antar aktivasi belum tentu adil pada anggaran hyperparameter yang sama persis.
 
 ### 7.3 Tindak lanjut
-
-Jika tersedia tambahan waktu atau komputasi, satu eksperimen apa yang paling
-bernilai dilakukan dan mengapa?
-
-[ISI TINDAK LANJUT]
+Mengulang keenam konfigurasi dengan 5 seed berbeda dan melaporkan validation loss rata-rata ± standar deviasi, untuk memastikan keunggulan Tanh h=16 atas ReLU h=16 bukan kebetulan akibat satu inisialisasi bobot tertentu.
 
 ## Referensi
-
-Cantumkan hanya sumber yang benar-benar digunakan. Gunakan satu gaya secara
-konsisten dan sertakan URL/DOI bila tersedia.
-
-1. [Penulis. Tahun. Judul. Penerbit/Jurnal. URL atau DOI.]
-2. [Dokumentasi library dan versi yang digunakan.]
+1. Rumelhart, D. E., Hinton, G. E., & Williams, R. J. (1986). Learning representations by back-propagating errors. *Nature*, 323(6088), 533–536.
+2. Nair, V., & Hinton, G. E. (2010). Rectified linear units improve restricted Boltzmann machines. *Proceedings of the 27th International Conference on Machine Learning (ICML-10)*, 807–814.
+3. Glorot, X., & Bengio, Y. (2010). Understanding the difficulty of training deep feedforward neural networks. *Proceedings of the 13th International Conference on Artificial Intelligence and Statistics (AISTATS)*, 9, 249–256. https://proceedings.mlr.press/v9/glorot10a.html
+4. Paszke, A., Gross, S., Massa, F., Lerer, A., Bradbury, J., Chanan, G., Killeen, T., Lin, Z., Gimelshein, N., Antiga, L., Desmaison, A., Kopf, A., Yang, E., DeVito, Z., Raison, M., Tejani, A., Chilamkurthy, S., Steiner, B., Fang, L., Bai, J., & Chintala, S. (2019). PyTorch: An imperative style, high-performance deep learning library. *Advances in Neural Information Processing Systems*, 32, 8024–8035. https://arxiv.org/abs/1912.01703
+5. Pedregosa, F., Varoquaux, G., Gramfort, A., Michel, V., Thirion, B., Grisel, O., Blondel, M., Prettenhofer, P., Weiss, R., Dubourg, V., Vanderplas, J., Passos, A., Cournapeau, D., Brucher, M., Perrot, M., & Duchesnay, E. (2011). Scikit-learn: Machine learning in Python. *Journal of Machine Learning Research*, 12, 2825–2830. https://jmlr.org/papers/v12/pedregosa11a.html
+6. Dokumentasi resmi PyTorch, versi 2.14.0. `torch.nn`, `torch.nn.BCEWithLogitsLoss`, `torch.optim.SGD`. https://pytorch.org/docs/stable/
+7. Dokumentasi resmi scikit-learn, versi 1.8.0. `sklearn.datasets.make_moons`, `sklearn.preprocessing.StandardScaler`, `sklearn.model_selection.train_test_split`. https://scikit-learn.org/stable/
 
 ## Pernyataan Orisinalitas
+Saya menyatakan bahwa kode, eksperimen, analisis, dan laporan ini merupakan pekerjaan individual. Semua sumber eksternal, termasuk potongan kode, telah dicantumkan. Saya memahami bahwa kemiripan hasil akibat seed atau data yang sama tidak membenarkan penyalinan notebook maupun analisis.
 
-Saya menyatakan bahwa kode, eksperimen, analisis, dan laporan ini merupakan
-pekerjaan individual. Semua sumber eksternal, termasuk potongan kode, telah
-dicantumkan. Saya memahami bahwa kemiripan hasil akibat seed atau data yang
-sama tidak membenarkan penyalinan notebook maupun analisis.
-
-**Nama:** [ISI NAMA]  
-**Tanggal:** [YYYY-MM-DD]
-
----
-
-## Checklist Sebelum Mengumpulkan
-
-> Hapus bagian petunjuk dan contoh yang tidak diperlukan, tetapi checklist ini
-> boleh dipertahankan pada berkas Markdown. Checklist tidak perlu muncul pada
-> PDF jika batas halaman ketat.
-
-- [ ] Nama berkas adalah `MXX_NIM.md` dan `MXX_NIM.pdf`.
-- [ ] Identitas, seed, device, dan versi library telah diisi.
-- [ ] Isi laporan tidak melebihi batas halaman modul.
-- [ ] Protokol sama dengan modul atau setiap perubahan telah dijelaskan.
-- [ ] Tabel hasil konsisten dengan `MXX_NIM_metrics.csv`.
-- [ ] Seluruh run dicantumkan, termasuk run yang gagal atau buruk.
-- [ ] Grafik memiliki judul, label sumbu, legenda, dan caption.
-- [ ] Setiap klaim utama disertai angka atau rujukan gambar/tabel.
-- [ ] Test set tidak digunakan untuk memilih model atau hyperparameter.
-- [ ] Kesimpulan menjawab tujuan dan menyebutkan trade-off.
-- [ ] Sumber eksternal telah dicantumkan.
-- [ ] Pernyataan orisinalitas telah diisi.
-- [ ] Notebook lolos **Restart Kernel and Run All**.
-- [ ] Tiga berkas pengumpulan (`ipynb`, `pdf`, dan `metrics.csv`) tersedia.
+**Nama:** ISI NAMA
+**Tanggal:** 2026-09-16

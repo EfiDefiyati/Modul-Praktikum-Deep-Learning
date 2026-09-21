@@ -1,0 +1,7 @@
+seed,tahap,yang_diperbaiki,epoch,loss_awal,loss_akhir,benar
+5,baseline,"tidak ada, ini kondisi awal train_rusak",400,,,0
+5,perbaikan-1,urutan backward() dipanggil sebelum step(),400,0.7280064550102043,0.6931471793904334,0
+5,perbaikan-2,"+ loss memakai logit langsung, tanpa sigmoid ganda",400,0.6987390847882926,0.6974071934422208,0
+5,perbaikan-3,+ zero_grad() dipanggil setiap awal epoch,400,0.6987390847882926,0.6933723396361469,0
+5,perbaikan-4 (400 epoch),+ menambahkan aktivasi ReLU di antara dua lapisan linier,400,0.7070467826946891,0.5029160239035115,0
+5,perbaikan-4 (1500 epoch),"+ ReLU, dilatih lebih lama karena seed=5 belum konvergen pada 400 epoch",1500,0.7070467826946891,0.03313948217073487,1
